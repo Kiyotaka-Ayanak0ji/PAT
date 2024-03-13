@@ -1,0 +1,382 @@
+1) Databases:
+Download Oracle 10g XE from yourwindowsworld.com
+Size: 207 MB
+Install: C:\Oraclexe folder
+Enter password for SYSTEM user
+Password:manager
+Reenter Password:manager
+
+Oracle installation will implicitly oracle/bin directory in PATH environment variable
+
+Oracle 10g bin directory:
+C:\oraclexe\app\oracle\product\10.2.0\server\bin
+
+Oracle 12c bin directory:
+C:\app\Surya\virtual\product\12.2.0\dbhome_1\bin
+
+------------------------------------------------
+New user creation in oracle
+SQL> CREATE USER pat identified by pat;
+SQL> GRANT CONNECT, RESOURCE, DBA TO pat;
+SQL> CONNECT pat/pat
+------------------------------------------------
+New table creation
+SQL> CREATE TABLE emp (
+	eid NUMBER,
+	ename  VARCHAR2(20),
+	sal NUMBER,
+	desig VARCHAR2(20),
+	CONSTRAINT emp_eid_pk PRIMARY KEY(eid)
+);
+Alter table
+alter table emp modify sal number(10,2);
+------------------------------------------------
+How to see all the tables
+SELECT tname FROM tab;
+
+How to describe table
+DESC emp;
+
+To see the table records
+SELECT * FROM emp;
+-------------------------------------------------
+UPDATE Oracle driver jar file in CLASSPATH
+...;C:\oraclexe\app\oracle\product\10.2.0\server\jdbc\lib\ojdbc14.jar
+-------------------------------------------------
+Steps to connect from JDBC program to DB:
+1) Load JDBC Driver
+Class.forName("oracle.jdbc.driver.OracleDriver");
+
+2) To establish connection to DB
+url, username, password must be passed as arguments into DriverManager.getConnection(url, user, pass)
+
+Connection con=DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:XE", "pat1", "pat1");
+
+System.out.println(con);
+
+3) Create a Statement object
+Statement stmt=con.createStatement();
+
+PreparedStatement pstmt=con.prepareStatement("INSERT INTO emp VALUES (?,?,?,?)");
+
+CallableStatement cstmt=con.prepareCall("{?=CALL callToFunc(?)}");
+
+CallableStatement cstmt1=con.prepareCall("{CALL callToProc(?,?)}");
+
+/* Java is having 3 Statements
+i) Statement
+ii) PreparedStatement
+iii) CallableStatement
+*/
+
+4) Execute SQL statement
+// INSERT with direct values
+int i=stmt.executeUpdate("INSERT INTO emp VALUES (1, 'ABC', 50000.00, 'Developer')");
+
+// INSERT with argument values
+int j=stmt.executeUpdate("INSERT INTO emp VALUES ("+eid+", '"+ename+"',"+sal+",'"+desig+"')");
+
+5) Fetching records from Database
+ResultSet rs=stmt.executeQuery("SELECT * FROM emp");
+while(rs.next()) {
+	System.out.print(rs.getInt(1)+" ");
+	System.out.print(rs.getString(2)+" ");
+	System.out.print(rs.getDouble(3)+" ");
+	System.out.println(rs.getString(4));
+}
+
+6) Close the database connection
+con.close();
+---------------------------------------------------------
+// First JDBC program to insert record into DB
+// JDBC_2.java
+import java.sql.*;
+import java.util.*;
+class JDBC_2 {
+	public static void main(String rags[]) throws Exception {
+		Scanner sc=new Scanner(System.in);
+
+		System.out.println("Enter EID");
+		int eid=sc.nextInt();
+		sc.nextLine();
+
+		System.out.println("Enter Ename");
+		String ename=sc.nextLine();
+		
+		System.out.println("Enter Sal");
+		double sal=sc.nextDouble();
+		sc.nextLine();
+		
+		System.out.println("Enter Desig");
+		String desig=sc.nextLine();
+		
+		String sql="INSERT INTO emp VALUES ("+eid+",'"+ename+"',"
+		+sal+",'"+desig+"')";
+		
+		String URL="jdbc:oracle:thin:@localhost:1521:orcl";
+		String USER="pat1";
+		String PASS="pat1";
+		
+		Class.forName("oracle.jdbc.driver.OracleDriver");
+		Connection con=DriverManager.getConnection(URL, USER, PASS);
+		Statement stmt=con.createStatement();
+		int i=stmt.executeUpdate(sql);
+		if(i==1) 
+			System.out.println(i+" record inserted");
+		else
+			System.out.println("insertion failed");
+		stmt.close();
+		con.close();
+	}
+}
+------------------------------------------------------
+// Write a JDBC program to insert record into DB using PreparedStatement
+// PreparedStatement is used to execute the same SQL statement many times
+// JDBC_3.java
+import java.sql.*;
+import java.util.*;
+class JDBC_3 {
+	public static void main(String rags[]) throws Exception {
+		Scanner sc=new Scanner(System.in);
+
+		System.out.println("Enter EID");
+		int eid=sc.nextInt();
+		sc.nextLine();
+
+		System.out.println("Enter Ename");
+		String ename=sc.nextLine();
+		
+		System.out.println("Enter Sal");
+		double sal=sc.nextDouble();
+		sc.nextLine();
+		
+		System.out.println("Enter Desig");
+		String desig=sc.nextLine();
+		
+		
+		String URL="jdbc:oracle:thin:@localhost:1521:orcl";
+		String USER="pat1";
+		String PASS="pat1";
+		String sql="INSERT INTO emp VALUES (?,?,?,?)";
+		
+		Class.forName("oracle.jdbc.driver.OracleDriver");
+		Connection con=DriverManager.getConnection(URL, USER, PASS);
+		
+		PreparedStatement pstmt=con.prepareStatement(sql);
+		pstmt.setInt(1, eid);
+		pstmt.setString(2, ename);
+		pstmt.setDouble(3, sal);
+		pstmt.setString(4, desig);
+		int i=pstmt.executeUpdate();
+
+		if(i==1) 
+			System.out.println(i+" record inserted");
+		else
+			System.out.println("insertion failed");
+		pstmt.close();
+		con.close();
+	}
+}
+---------------------------------------------------------
+CallableStatements are used to call functions and procedures exist in the database.
+
+open SQL command prompt, login as pat1/pat1
+
+Procedure creation in OracleDabase using PL/SQL block
+=====================================================
+CREATE OR REPLACE PROCEDURE emp_insert_proc(eid_p IN NUMBER, ename_p IN VARCHAR2, sal_p IN NUMBER, desig_p IN VARCHAR2) AS
+BEGIN
+	INSERT INTO emp VALUES (eid_p, ename_p, sal_p, desig_p);
+	COMMIT;
+END;
+/
+
+Write a JDBC program to call procedure exist in the database using CallableStatement:
+------------------------------------------------------------------------------------
+// JDBC_4.java
+import java.sql.*;
+import java.util.*;
+class JDBC_4 {
+	public static void main(String rags[]) throws Exception {
+		Scanner sc=new Scanner(System.in);
+
+		System.out.println("Enter EID");
+		int eid=sc.nextInt();
+		sc.nextLine();
+
+		System.out.println("Enter Ename");
+		String ename=sc.nextLine();
+		
+		System.out.println("Enter Sal");
+		double sal=sc.nextDouble();
+		sc.nextLine();
+		
+		System.out.println("Enter Desig");
+		String desig=sc.nextLine();
+		
+		
+		String URL="jdbc:oracle:thin:@localhost:1521:orcl";
+		String USER="pat1";
+		String PASS="pat1";
+		
+		Class.forName("oracle.jdbc.driver.OracleDriver");
+		Connection con=DriverManager.getConnection(URL, USER, PASS);
+		
+		CallableStatement cstmt=con.prepareCall("{call emp_insert_proc(?,?,?,?)}");
+		
+		cstmt.setInt(1, eid);
+		cstmt.setString(2, ename);
+		cstmt.setDouble(3, sal);
+		cstmt.setString(4, desig);
+		int i=cstmt.executeUpdate();
+
+		if(i==1) 
+			System.out.println(i+" record inserted");
+		else
+			System.out.println("insertion failed");
+		cstmt.close();
+		con.close();
+	}
+}
+
+ 
+
+----------------------------------------------------------------
+To execute SQL SELECT statement we need to call executeQuery() method on Statement object that returns ResultSet object
+
+Ex:
+ResultSet rs=stmt.executeQuery("SELECT * FROM emp");
+
+// JDBC_5.java
+import java.sql.*;
+import java.util.*;
+class JDBC_5 {
+	public static void main(String rags[]) throws Exception {
+		Scanner sc=new Scanner(System.in);
+
+		System.out.println("Enter Desig");
+		String desig=sc.nextLine();
+		
+		String URL="jdbc:oracle:thin:@localhost:1521:orcl";
+		String USER="pat1";
+		String PASS="pat1";
+		String sql="SELECT * FROM emp WHERE desig='"+desig+"'";
+		
+		Class.forName("oracle.jdbc.driver.OracleDriver");
+		Connection con=DriverManager.getConnection(URL, USER, PASS);
+		Statement stmt=con.createStatement();
+		ResultSet rs=stmt.executeQuery(sql);
+		while(rs.next()) {
+			System.out.print(rs.getInt(1)+" ");
+			System.out.print(rs.getString(2)+" ");
+			System.out.print(rs.getDouble(3)+" ");
+			System.out.println(rs.getString(4));
+		}
+		rs.close();
+		stmt.close();
+		con.close();
+	}
+}
+
+-----------------------------------------------------------Execute SQL Query using PreparedStatement
+// JDBC_6.java
+import java.sql.*;
+import java.util.*;
+class JDBC_6 {
+	public static void main(String rags[]) throws Exception {
+		Scanner sc=new Scanner(System.in);
+
+		System.out.println("Enter Desig");
+		String desig=sc.nextLine();
+		
+		String URL="jdbc:oracle:thin:@localhost:1521:orcl";
+		String USER="pat1";
+		String PASS="pat1";	
+		
+		Class.forName("oracle.jdbc.driver.OracleDriver");
+		Connection con=DriverManager.getConnection(URL, USER, PASS);
+		//-----start 
+		String sql="SELECT * FROM emp WHERE desig=?";
+		
+		PreparedStatement pstmt=con.prepareStatement(sql);
+		pstmt.setString(1, desig);
+		ResultSet rs=pstmt.executeQuery();
+		boolean flag=false;
+		while(rs.next()) {
+			System.out.print(rs.getInt(1)+" ");
+			System.out.print(rs.getString(2)+" ");
+			System.out.print(rs.getDouble(3)+" ");
+			System.out.println(rs.getString(4));
+			flag=true;
+		}
+		if(!flag)
+			System.out.println("No records found");
+		rs.close();
+		pstmt.close();
+		con.close();
+	}
+}
+
+--------------------------------------------------------
+Calling a PL/SQL function from JDBC using CallableStatement
+
+login into SQLPLUS as pat1/pat1
+
+
+
+
+
+CREATE OR REPLACE PROCEDURE fecth_emp_proc(desig_p IN VARCHAR2, emp_cur_out OUT SYS_REFCURSOR) AS
+BEGIN
+	open emp_cur_out FOR SELECT * FROM emp WHERE desig=desig_p;
+END;
+/
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+// JDBC_7.java
+import java.sql.*;
+import java.util.*;
+import oracle.jdbc.internal.OracleTypes;
+class JDBC_7 {
+	public static void main(String rags[]) throws Exception {
+		Scanner sc=new Scanner(System.in);
+
+		System.out.println("Enter Desig");
+		String desig=sc.nextLine();
+		
+		String URL="jdbc:oracle:thin:@localhost:1521:orcl";
+		String USER="pat1";
+		String PASS="pat1";	
+		
+		Class.forName("oracle.jdbc.driver.OracleDriver");
+		Connection con=DriverManager.getConnection(URL, USER, PASS);
+		
+		CallableStatement cstmt=con.prepareCall("{call fecth_emp_proc(?,?)}");
+		cstmt.registerOutParameter(2, OracleTypes.CURSOR);
+		cstmt.setString(1, desig);
+		cstmt.executeQuery();
+		ResultSet rs=(ResultSet)cstmt.getObject(2);
+		boolean flag=false;
+		while(rs.next()) {
+			System.out.print(rs.getInt(1)+" ");
+			System.out.print(rs.getString(2)+" ");
+			System.out.print(rs.getDouble(3)+" ");
+			System.out.println(rs.getString(4));
+			flag=true;
+		}
+		if(!flag)
+			System.out.println("No records found");
+		rs.close();
+		cstmt.close();
+		con.close();
+	}
+}
