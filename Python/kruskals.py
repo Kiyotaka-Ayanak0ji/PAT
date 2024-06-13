@@ -25,6 +25,7 @@ def kruskals(graph):
             mst.append(edge)
             parent[find_parent(src)] = find_parent(dest)
     return mst
+    
 graph = {
     "A": [(7,"B"), (9, "C"), (14,"F")],
     "B": [(7,"A"), (15, "D"), (10, "C")],
